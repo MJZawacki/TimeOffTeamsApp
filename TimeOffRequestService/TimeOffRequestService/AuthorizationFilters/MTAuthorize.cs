@@ -31,6 +31,16 @@ namespace TimeOffRequestService.AuthorizationFilters
     {
         public override void OnAuthorization(HttpActionContext actionContext)
         {
+
+            ClaimsPrincipal principal = ClaimsPrincipal.Current;
+            if (null != principal)
+            {
+                foreach (Claim claim in principal.Claims)
+                {
+                    Console.WriteLine("CLAIM TYPE: " + claim.Type + "; CLAIM VALUE: " + claim.Value);
+                }
+            }
+
             string issuer = ClaimsPrincipal.Current.FindFirst(ClaimTypes.Name)?.Issuer;
             string UPN = ClaimsPrincipal.Current.FindFirst(ClaimTypes.Name)?.Value;
             string tenantID = ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/tenantid")?.Value;

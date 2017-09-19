@@ -13,7 +13,7 @@ namespace TimeOffRequestService.Utils
         private string clientId = ConfigurationManager.AppSettings["ida:ClientID"];
         private string clientSecret = ConfigurationManager.AppSettings["ida:Password"];
 
-        public async Task<string> GetAccessToken (string resource, string tenant)
+        public async Task<string> GetAccessToken (string resource)
         {
             ClientCredential clientCred = new ClientCredential(clientId, clientSecret);
             string authHeader = HttpContext.Current.Request.Headers["Authorization"];
@@ -21,7 +21,7 @@ namespace TimeOffRequestService.Utils
             string userAccessToken = authHeader.Substring(authHeader.LastIndexOf(' ')).Trim();
             UserAssertion userAssertion = new UserAssertion(userAccessToken);
 
-            string authority = $"https://login.microsoftonline.com/{tenant}";
+            string authority = $"https://login.microsoftonline.com/common";
 
             AuthenticationContext authContext = new AuthenticationContext(authority);
 

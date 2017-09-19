@@ -21,8 +21,8 @@ namespace TimeOffRequestService.Controllers
         public async Task<HttpResponseMessage> Post([FromBody]Fields fields)
         {
             var helper = new AuthHelper();
-            var tenant = ConfigurationManager.AppSettings["aad:Tenant"];
-            var token = await helper.GetAccessToken("https://graph.microsoft.com", tenant);
+            var tenant = ConfigurationManager.AppSettings["ida:Tenant"];
+            var token = await helper.GetAccessToken("https://graph.microsoft.com");
 
             HttpClient client = new HttpClient();
 
