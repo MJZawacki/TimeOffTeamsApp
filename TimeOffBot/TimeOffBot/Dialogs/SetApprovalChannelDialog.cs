@@ -61,28 +61,28 @@ namespace TimeOffBot.Dialogs
         {
             var activity = context.Activity as Activity;
 
-            try
-            {
-                var selection = await result;
-                // post to channel and store in docdb
-                var channelData = new TeamsChannelData { Channel = new ChannelInfo(yourChannelId) };
-                IMessageActivity newMessage = Activity.CreateMessageActivity();
-                newMessage.Type = ActivityTypes.Message;
-                newMessage.Text = "Hello, on a new thread";
-                ConversationParameters conversationParams = new ConversationParameters(
-                    isGroup: true,
-                    bot: null,
-                    members: null,
-                    topicName: "Test Conversation",
-                    activity: (Activity)newMessage,
-                    channelData: channelData);
-                var result = await connector.Conversations.CreateConversationAsync(conversationParams);
+            //try
+            //{
+            //    var selection = await result;
+            //    // post to channel and store in docdb
+            //    var channelData = new TeamsChannelData { Channel = new ChannelInfo(yourChannelId) };
+            //    IMessageActivity newMessage = Activity.CreateMessageActivity();
+            //    newMessage.Type = ActivityTypes.Message;
+            //    newMessage.Text = "Hello, on a new thread";
+            //    ConversationParameters conversationParams = new ConversationParameters(
+            //        isGroup: true,
+            //        bot: null,
+            //        members: null,
+            //        topicName: "Test Conversation",
+            //        activity: (Activity)newMessage,
+            //        channelData: channelData);
+            //    var result = await connector.Conversations.CreateConversationAsync(conversationParams);
 
-            }
-            catch (TooManyAttemptsException)
-            {
-                await this.StartAsync(context);
-            }
+            //}
+            //catch (TooManyAttemptsException)
+            //{
+            //    await this.StartAsync(context);
+            //}
         }
 
     }
