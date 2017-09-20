@@ -20,6 +20,13 @@ namespace TimeOffBot.Dialogs
             context.Call(new TimeOffDialog(), this.EndDialog);
         }
 
+        [RegexPattern(DialogMatches.SetApprovalChannelMatch)]
+        [ScorableGroup(1)]
+        public async Task SetApprovalChannel(IDialogContext context, IActivity activity)
+        {
+            context.Call(new TimeOffDialog(), this.EndDialog);
+        }
+
         public async Task EndDialog(IDialogContext context, IAwaitable<object> result)
         {
             context.Done<object>(null);
