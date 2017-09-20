@@ -15,6 +15,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using TimeOffBot.DAL;
 
 namespace TimeOffBot.Dialogs
 {
@@ -23,16 +24,22 @@ namespace TimeOffBot.Dialogs
     {
         public async Task StartAsync(IDialogContext context)
         {
-            await context.SayAsync("Please give a short description of your time-off request");
-            context.Wait(AfterTitleSelectedAsync);
+            await Task.Run(() =>
+            {
+                context.SayAsync("Please give a short description of your time-off request");
+                context.Wait(MessageReceivedAsync);
+            });
         }
 
-        private async Task AfterTitleSelectedAsync(IDialogContext context, IAwaitable<IMessageActivity> item)
+        public virtual async Task MessageReceivedAsync(IDialogContext context, IAwaitable<IMessageActivity> item)
         {
             var message = await item;
 
+            // store the conversation.Id for later use when informing the user their request is approved
+            context.ConversationData.SetValue<string>("conversationId", message.Conversation.Id);
+
             context.ConversationData.SetValue<string>("title", message.GetTextWithoutMentions());
-            await context.SayAsync("Now enter the reason for your request");
+            await context.SayAsync("Are there any special circumstances the Approver needs to be aware of?");
             context.Wait(AfterCommentsSelectedAsync);
         }
 
@@ -90,7 +97,8 @@ namespace TimeOffBot.Dialogs
                 {
                     Title = context.ConversationData.GetValue<string>("title"),
                     Comments = context.ConversationData.GetValue<string>("comments"),
-                    Days = int.Parse(context.ConversationData.GetValue<string>("days"))
+                    Days = int.Parse(context.ConversationData.GetValue<string>("days")),
+                    ConversationId = context.ConversationData.GetValue<string>("conversationId")
                 };
 
                 var data = JsonConvert.SerializeObject(fields);
@@ -104,7 +112,23 @@ namespace TimeOffBot.Dialogs
 
                 if (response.IsSuccessStatusCode == true)
                 {
-                    await context.SayAsync("Your request has been added and is now waiting for approval.");
+                    // let the user know their request is awaiting approval
+                    var message = context.MakeMessage();
+                    var attachment = GetThumbnailCard(context.ConversationData.GetValue<string>("title"));
+                    message.Attachments.Add(attachment);
+                    await context.PostAsync((message));
+
+                    // save the result to DocumentDB so that the message can be updated once approved or rejected
+                    var conversation = new DAL.ConversationData();
+                    conversation.toId = message.From.Id;
+                    conversation.toName = message.From.Name;
+                    conversation.fromId = message.Recipient.Id;
+                    conversation.fromName = message.Recipient.Name;
+                    conversation.serviceUrl = message.ServiceUrl;
+                    conversation.channelId = message.ChannelId;
+                    conversation.conversationId = message.Conversation.Id;
+                    var _userService = new UserManagerService(false);
+                    _userService.SaveConversation(conversation);
                 }
                 else
                 {
@@ -114,6 +138,19 @@ namespace TimeOffBot.Dialogs
                 context.ConversationData.Clear();
                 await this.EndDialog(context, null);
             }
+        }
+
+        private static Attachment GetThumbnailCard(string text)
+        {
+            var heroCard = new ThumbnailCard
+            {
+                Title = "Time-off Request",
+                Subtitle = "Request Awaiting Approval",
+                Text = text,
+                Images = new List<CardImage> { new CardImage("http://freedesignfile.com/upload/2014/04/Summer-beach-vacation-background-art-vector-01.jpg") }
+            };
+
+            return heroCard.ToAttachment();
         }
 
         public async Task EndDialog(IDialogContext context, IAwaitable<object> result)
