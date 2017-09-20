@@ -1,15 +1,14 @@
-
 {
   "$schema": "https://statics.teams.microsoft.com/sdk/v1.0/manifest/MicrosoftTeams.schema.json",
   "manifestVersion": "1.0",
   "version": "1.0",
-  "id": "9225d0a4-2501-4ce4-b5cf-733bc5d66236",
-  "packageName": "io.ngrok.5d60bbfc.timeoffbot",
+  "id": "48d695b1-348a-4588-875c-29bc5c1526d7",
+  "packageName": "io.ngrok.7668d144.timeoffbot",
   "developer": {
     "name": "Table80",
-    "websiteUrl": "https://5d60bbfc.ngrok.io",
-    "privacyUrl": "https://5d60bbfc.ngrok.io",
-    "termsOfUseUrl": "https://5d60bbfc.ngrok.io"
+    "websiteUrl": "https://7668d144.ngrok.io",
+    "privacyUrl": "https://7668d144.ngrok.io",
+    "termsOfUseUrl": "https://7668d144.ngrok.io"
   },
   "name": {
     "short": "TimeoffBot",
@@ -28,7 +27,7 @@
   "configurableTabs": [],
   "bots": [
     {
-      "botId": "9225d0a4-2501-4ce4-b5cf-733bc5d66236",
+      "botId": "48d695b1-348a-4588-875c-29bc5c1526d7",
       "isNotificationOnly": false,
       "scopes": [
         "personal",
@@ -60,12 +59,8 @@
           ],
           "commands": [
             {
-              "title": "search requests",
-              "description": "Get a list of requests that has been assigned to you to approve / reject"
-            },
-            {
-              "title": "set approver channel",
-              "description": "Make this channel the default approval channel for notifications"
+              "title": "approve request",
+              "description": "Approve Timeoff for a request that has been assigned to you"
             }
           ]
         }
@@ -78,6 +73,6 @@
     "messageTeamMembers"
   ],
   "validDomains": [
-    "5d60bbfc.ngrok.io"
+    "7668d144.ngrok.io"
   ]
 }
