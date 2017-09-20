@@ -20,7 +20,7 @@ namespace TimeOffBot
         {
             if (activity.Type == ActivityTypes.Message)
             {
-                await Conversation.SendAsync(activity, () => new Dialogs.RouterDialog());
+                await Conversation.SendAsync(activity, () => new Dialogs.RootDialog());
             }
             else
             {

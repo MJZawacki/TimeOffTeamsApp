@@ -35,7 +35,7 @@ namespace TimeOffBot.Dialogs
 
         public virtual async Task MessageReceivedAsync(IDialogContext context, IAwaitable<IMessageActivity> item)
         {
-
+            var debugflag = ConfigurationManager.AppSettings["debugFlag"];
             var message = await item;
             var conversation = new ConversationData();
             conversation.toId = message.From.Id;
@@ -45,8 +45,9 @@ namespace TimeOffBot.Dialogs
             conversation.serviceUrl = message.ServiceUrl;
             conversation.channelId = message.ChannelId;
             conversation.conversationId = message.Conversation.Id;
-            var _userService = new UserManagerService(true);
-            _userService.SaveConversation(conversation);
+            conversation.originatingMessage = message.Id;
+            var _userService = new UserManagerService(Boolean.Parse(debugflag));
+            await _userService.SaveConversation(conversation);
 
             var data = context.UserData;
             data.SetValue<ConversationData>("Conversation", conversation);

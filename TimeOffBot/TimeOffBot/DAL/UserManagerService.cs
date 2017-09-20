@@ -45,12 +45,10 @@ namespace TimeOffBot.DAL
                 try
                 {
                     //Instantiate a new DocumentClient instance
-                    using (client = new DocumentClient(new Uri(endpointUrl), authorizationKey, connectionPolicy))
-                    {
-                        //Get, or Create, a reference to Database
-                        docCollection = Initialize().Result;
+                    client = new DocumentClient(new Uri(endpointUrl), authorizationKey, connectionPolicy);
+                    docCollection = Initialize().Result;
 
-                    }
+                   
                 }
                 catch (DocumentClientException de)
                 {
@@ -66,7 +64,7 @@ namespace TimeOffBot.DAL
             }
 
         }
-        public void SaveConversation(ConversationData newConversation)
+        public async Task SaveConversation(ConversationData newConversation)
         {
             if (_debug)
             {
@@ -74,7 +72,15 @@ namespace TimeOffBot.DAL
             }
             else
             {
+               try
+                {
+                await client.CreateDocumentAsync(docCollection.DocumentsLink, newConversation);
 
+                } catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                }
+                
             }
         }
         public ConversationData GetConversation(string conversationId)
@@ -86,7 +92,9 @@ namespace TimeOffBot.DAL
             }
             else
             {
-
+                IQueryable<ConversationData> query = client.CreateDocumentQuery<ConversationData>(docCollection.DocumentsLink)
+                    .Where(con => con.conversationId == conversationId);
+                conversation = query.AsEnumerable().FirstOrDefault(); ;
             }
             return conversation;
         }
@@ -95,6 +103,7 @@ namespace TimeOffBot.DAL
         
         private static async Task<DocumentCollection> Initialize()
         {
+            Debug.WriteLine("Initializing Database");
             // Get the database by name, or create a new one if one with the name provided doesn't exist.
             // Create a query object for database, filter by name.
             IEnumerable<Database> query = from db in client.CreateDatabaseQuery()
@@ -139,6 +148,7 @@ namespace TimeOffBot.DAL
         public string serviceUrl { get; set; }
         public string channelId { get; set; }
         public string conversationId { get; set; }
+        public string originatingMessage { get; set; }
     }
 
 

@@ -9,6 +9,8 @@ using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
 using TimeOffBot.Utils;
 using TimeOffBot.DAL;
+using Microsoft.Bot.Connector.Teams.Models;
+using System.Configuration;
 
 namespace TimeOffBot.Controllers
 {
@@ -17,7 +19,8 @@ namespace TimeOffBot.Controllers
         private static IUserManagerService _userService;
         public NotificationsController()
         {
-            _userService = new UserManagerService(true);
+            var debugflag = ConfigurationManager.AppSettings["debugFlag"];
+            _userService = new UserManagerService(Boolean.Parse(debugflag));
         }
         [HttpPost]
 
@@ -37,6 +40,7 @@ namespace TimeOffBot.Controllers
                     // get approvers channel
 
                     // send message
+
                     break;
                 case "timeOffResponse":
                     // Update original request in the channel
@@ -63,6 +67,41 @@ namespace TimeOffBot.Controllers
         }
 
 
+        private static async Task sendNewChannelMsg(string textmessage, string channelid, ConversationData data)
+        {
+
+            var userAccount = new ChannelAccount(data.toId, data.toName);
+            var botAccount = new ChannelAccount(data.fromId, data.fromName);
+            var connector = new ConnectorClient(new Uri(data.serviceUrl));
+
+            // Create a new message.
+            IMessageActivity message = Activity.CreateMessageActivity();
+            message.Type = ActivityTypes.Message;
+            message.Text = textmessage;
+            if (!string.IsNullOrEmpty(data.conversationId) && !string.IsNullOrEmpty(data.channelId))
+            {
+                // If conversation ID and channel ID was stored previously, use it.
+                message.ChannelId = data.channelId;
+            }
+            else
+            {
+                // Conversation ID was not stored previously, so create a conversation. 
+                // Note: If the user has an existing conversation in a channel, this will likely create a new conversation window.
+                data.conversationId = (await connector.Conversations.CreateDirectConversationAsync(botAccount, userAccount)).Id;
+            }
+
+            var channelData = new TeamsChannelData { Channel = new ChannelInfo(channelid) };
+        
+
+            ConversationParameters conversationParams = new ConversationParameters(
+                isGroup: true,
+                bot: null,
+                members: null,
+                topicName: "Test Conversation",
+                activity: (Activity) message,
+                channelData: channelData);
+            var result = await connector.Conversations.CreateConversationAsync(conversationParams);
+        }
         private static async Task sendCard(string textmessage, ConversationData data)
         {
 
