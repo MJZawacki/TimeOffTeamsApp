@@ -159,8 +159,12 @@
   <ItemGroup>
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\MessagesController.cs" />
+    <Compile Include="Controllers\NotificationsController.cs" />
     <Compile Include="DAL\DocumentDbRepository.cs" />
     <Compile Include="DAL\UserManagerService.cs" />
+    <Compile Include="Dialogs\ApprovalRequestDialog.cs" />
+    <Compile Include="Dialogs\DialogMatches.cs" />
+    <Compile Include="Dialogs\Fields.cs" />
     <Compile Include="Dialogs\RootDialog.cs" />
     <Compile Include="Dialogs\RouterDialog.cs" />
     <Compile Include="Dialogs\TimeOffDialog.cs" />
