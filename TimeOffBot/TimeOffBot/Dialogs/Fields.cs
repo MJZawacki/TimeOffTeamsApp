@@ -10,5 +10,7 @@ namespace TimeOffBot.Dialogs
         public string Title { get; set; }
         public string Comments { get; set; }
         public int Days { get; set; }
+        public string ConversationId { get; set; }
+        public string MessageId { get; set; }
     }
 }

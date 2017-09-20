@@ -24,7 +24,7 @@ namespace TimeOffBot.Dialogs
         [ScorableGroup(1)]
         public async Task SetApprovalChannel(IDialogContext context, IActivity activity)
         {
-            context.Call(new TimeOffDialog(), this.EndDialog);
+            context.Call(new SetApprovalChannelDialog(), this.EndDialog);
         }
 
         public async Task EndDialog(IDialogContext context, IAwaitable<object> result)
