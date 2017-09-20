@@ -1,0 +1,78 @@
+{
+  "$schema": "https://statics.teams.microsoft.com/sdk/v1.0/manifest/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.0",
+  "version": "1.0",
+  "id": "9225d0a4-2501-4ce4-b5cf-733bc5d66236",
+  "packageName": "io.ngrok.5d60bbfc.timeoffbot",
+  "developer": {
+    "name": "Table80",
+    "websiteUrl": "https://5d60bbfc.ngrok.io",
+    "privacyUrl": "https://5d60bbfc.ngrok.io",
+    "termsOfUseUrl": "https://5d60bbfc.ngrok.io"
+  },
+  "name": {
+    "short": "TimeoffBot",
+    "full": "TimeoffBot"
+  },
+  "description": {
+    "short": "I am a bot that can help you make timeoff requests",
+    "full": "I am a bot that can help you make your timeoff requests and gain approval"
+  },
+  "icons": {
+    "outline": "bot_blue.png",
+    "color": "bot_blue.png"
+  },
+  "accentColor": "#3F487F",
+  "staticTabs": [],
+  "configurableTabs": [],
+  "bots": [
+    {
+      "botId": "9225d0a4-2501-4ce4-b5cf-733bc5d66236",
+      "isNotificationOnly": false,
+      "scopes": [
+        "personal",
+        "team"
+      ],
+      "commandLists": [
+        {
+          "scopes": [
+            "personal"
+          ],
+          "commands": [
+            {
+              "title": "RequestTimeOff",
+              "description": "Request time off for vacation and other non-work related activities"
+            },
+            {
+              "title": "AddSicknessLeave",
+              "description": "Add time off for sickness leave already taken"
+            },
+            {
+              "title": "BookBusinessTravel",
+              "description": "Book time off for work related activities"
+            }
+          ]
+        },
+        {
+          "scopes": [
+            "team"
+          ],
+          "commands": [
+            {
+              "title": "ApproveTimeOff",
+              "description": "Approve Timeoff for a request that has been assigned to you"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "composeExtensions": [],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "5d60bbfc.ngrok.io"
+  ]
+}
