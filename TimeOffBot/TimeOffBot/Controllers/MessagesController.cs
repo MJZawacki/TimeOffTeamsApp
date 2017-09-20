@@ -7,7 +7,7 @@ using Microsoft.Bot.Connector;
 using System.Linq;
 using System;
 
-namespace TeamsBot
+namespace TimeOffBot
 {
     [BotAuthentication]
     public class MessagesController : ApiController

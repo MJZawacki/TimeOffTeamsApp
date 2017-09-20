@@ -2,10 +2,12 @@
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.Diagnostics;
 using System.Linq;
 using System.Web.Http;
 
-namespace TeamsBot
+namespace TimeOffBot
 {
     public static class WebApiConfig
     {
@@ -23,6 +25,7 @@ namespace TeamsBot
             };
 
             // Web API configuration and services
+
 
             // Web API routes
             config.MapHttpAttributeRoutes();

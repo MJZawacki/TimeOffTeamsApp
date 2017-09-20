@@ -13,12 +13,17 @@ using System.Collections.Generic;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using System.Text;
+using TimeOffBot.Utils;
+using TimeOffBot.DAL;
 
-namespace TeamsBot.Dialogs
+namespace TimeOffBot.Dialogs
 {
     [Serializable]
     public class RootDialog : IDialog<object>
     {
+
+        
+
         public async Task StartAsync(IDialogContext context)
         {
             await Task.Run(() =>
@@ -29,8 +34,33 @@ namespace TeamsBot.Dialogs
 
         public virtual async Task MessageReceivedAsync(IDialogContext context, IAwaitable<IMessageActivity> item)
         {
+
+            var message = await item;
+            var conversation = new ConversationData();
+            conversation.toId = message.From.Id;
+            conversation.toName = message.From.Name;
+            conversation.fromId = message.Recipient.Id;
+            conversation.fromName = message.Recipient.Name;
+            conversation.serviceUrl = message.ServiceUrl;
+            conversation.channelId = message.ChannelId;
+            conversation.conversationId = message.Conversation.Id;
+            var _userService = new UserManagerService(true);
+            _userService.SaveConversation(conversation);
+
+            var data = context.UserData;
+            data.SetValue<ConversationData>("Conversation", conversation);
+            data.SetValue<string>("test", "test");
+
+            //StateClient stateClient = message.GetStateClient();
+            //BotData userData = await stateClient.BotState.GetUserDataAsync(message.ChannelId, message.From.Id);
+            //userData.SetProperty<ConversationData>("Conversation", conversation);
+            //await stateClient.BotState.SetUserDataAsync(message.ChannelId, message.From.Id, userData);
+            
             await Task.Run(() =>
             {
+
+
+
                 var descriptions = new List<string>() { "Time Off", "Sickness", "Business Travel" };
                 var choices = new Dictionary<string, IReadOnlyList<string>>()
                 {
@@ -40,7 +70,7 @@ namespace TeamsBot.Dialogs
                 };
 
                 var promptOptions = new PromptOptionsWithSynonyms<string>(
-                    $"Hey, what requests do you want to make today?",
+                    $"Hey, what requests do you want to make today? " + conversation.conversationId,
                     "I am sorry but I didn't understand that. I need you to select one of the options below",
                     choices: choices,
                     descriptions: descriptions,
