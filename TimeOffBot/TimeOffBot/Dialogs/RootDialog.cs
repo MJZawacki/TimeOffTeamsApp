@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
+using Microsoft.Bot.Connector.Teams;
 using System.Net.Http;
 using System.Configuration;
 using BotAuth.Models;
@@ -128,7 +129,7 @@ namespace TimeOffBot.Dialogs
         {
             var message = await item;
 
-            context.ConversationData.SetValue<string>("title", message.Text);
+            context.ConversationData.SetValue<string>("title", message.GetTextWithoutMentions());
             await context.SayAsync("Now enter the reason for your request");
             context.Wait(AfterCommentsSelectedAsync);
         }
@@ -137,7 +138,7 @@ namespace TimeOffBot.Dialogs
         {
             var message = await item;
 
-            context.ConversationData.SetValue<string>("comments", message.Text);
+            context.ConversationData.SetValue<string>("comments", message.GetTextWithoutMentions());
 
             await context.SayAsync("How many days?");
             context.Wait(AfterDaysSelectedAsync);
@@ -148,7 +149,7 @@ namespace TimeOffBot.Dialogs
         {
             var message = await item;
 
-            context.ConversationData.SetValue<string>("days", message.Text);
+            context.ConversationData.SetValue<string>("days", message.GetTextWithoutMentions());
 
             await CompleteApprovalAsync(context, item);
 
@@ -213,11 +214,6 @@ namespace TimeOffBot.Dialogs
         }
     }
 
-    public class Fields
-    {
-        public string Title { get; set; }
-        public string Comments { get; set; }
-        public int Days { get; set; }
-    }
+    
 }
 
