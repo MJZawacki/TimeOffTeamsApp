@@ -40,15 +40,15 @@
           ],
           "commands": [
             {
-              "title": "RequestTimeOff",
+              "title": "time-off",
               "description": "Request time off for vacation and other non-work related activities"
             },
             {
-              "title": "AddSicknessLeave",
+              "title": "sickness leave",
               "description": "Add time off for sickness leave already taken"
             },
             {
-              "title": "BookBusinessTravel",
+              "title": "business travel",
               "description": "Book time off for work related activities"
             }
           ]
@@ -59,7 +59,7 @@
           ],
           "commands": [
             {
-              "title": "ApproveTimeOff",
+              "title": "approve request",
               "description": "Approve Timeoff for a request that has been assigned to you"
             }
           ]

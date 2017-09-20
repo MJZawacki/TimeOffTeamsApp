@@ -7,7 +7,7 @@ using Microsoft.Bot.Connector;
 using System.Linq;
 using System;
 
-namespace TeamsBot
+namespace TimeOffBot
 {
     [BotAuthentication]
     public class MessagesController : ApiController
@@ -20,7 +20,7 @@ namespace TeamsBot
         {
             if (activity.Type == ActivityTypes.Message)
             {
-                await Conversation.SendAsync(activity, () => new Dialogs.RootDialog());
+                await Conversation.SendAsync(activity, () => new Dialogs.RouterDialog());
             }
             else
             {

@@ -1,101 +1,33 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using BotAuth.AADv1;
+using BotAuth.Dialogs;
+using BotAuth.Models;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Connector.Teams;
-using System.Net.Http;
-using System.Configuration;
-using BotAuth.Models;
-using BotAuth.Dialogs;
-using BotAuth.AADv1;
-using BotAuth;
-using System.Threading;
-using System.Collections.Generic;
-using System.Net.Http.Headers;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace TimeOffBot.Dialogs
 {
     [Serializable]
-    public class RootDialog : IDialog<object>
+    public class TimeOffDialog : IDialog<object>
     {
         public async Task StartAsync(IDialogContext context)
         {
-            await Task.Run(() =>
-            {
-                context.Wait(MessageReceivedAsync);
-            });
-        }
-
-        public virtual async Task MessageReceivedAsync(IDialogContext context, IAwaitable<IMessageActivity> item)
-        {
-            await Task.Run(() =>
-            {
-                var descriptions = new List<string>() { "Time Off", "Sickness", "Business Travel" };
-                var choices = new Dictionary<string, IReadOnlyList<string>>()
-                {
-                        { "Time Off", new List<string> { "Time Off" } },
-                        { "Sickness", new List<string> { "Sick" } },
-                        { "Business Travel", new List<string> { "Travel"} },
-                };
-
-                var promptOptions = new PromptOptionsWithSynonyms<string>(
-                    $"Hey, what requests do you want to make today?",
-                    "I am sorry but I didn't understand that. I need you to select one of the options below",
-                    choices: choices,
-                    descriptions: descriptions,
-                    speak: $"Hey, what requests do you want to make today?",
-                    retrySpeak: "I am sorry but I didn't get that. Please say Time Off, Sickness or Business Travel",
-                    attempts: 2);
-
-                PromptDialog.Choice(
-                    context,
-                    this.AfterChoiceSelected,
-                    promptOptions);
-            });
-        }
-
-        private async Task AfterChoiceSelected(IDialogContext context, IAwaitable<string> result)
-        {
-            var activity = context.Activity as Activity;
-
-            try
-            {
-                var selection = await result;
-
-                switch (selection)
-                {
-                    case "Sickness":
-                        await context.PostAsync("This feature is not yet implemented!");
-                        await this.StartAsync(context);
-                        break;
-
-                    case "Time Off":
-                        {
-                            await GetRequest(context);
-                        }
-                        break;
-
-                    case "Business Travel":
-                        await context.PostAsync("This feature is not yet implemented!");
-                        await this.StartAsync(context);
-                        break;
-                }
-            }
-            catch (TooManyAttemptsException)
-            {
-                await this.StartAsync(context);
-            }
-        }
-
-        private async Task GetRequest(IDialogContext context)
-        {
-            await context.SayAsync("Please give a short description of your request");
+            await context.SayAsync("Please give a short description of your time-off request");
             context.Wait(AfterTitleSelectedAsync);
         }
 
-        public virtual async Task AfterTitleSelectedAsync(IDialogContext context, IAwaitable<IMessageActivity> item)
+        private async Task AfterTitleSelectedAsync(IDialogContext context, IAwaitable<IMessageActivity> item)
         {
             var message = await item;
 
@@ -148,7 +80,7 @@ namespace TimeOffBot.Dialogs
             if (string.IsNullOrEmpty(result.AccessToken))
             {
                 await context.SayAsync("Something went wrong");
-                context.Wait(MessageReceivedAsync);
+                await this.EndDialog(context, null);
             }
             else
             {
@@ -173,17 +105,20 @@ namespace TimeOffBot.Dialogs
                 if (response.IsSuccessStatusCode == true)
                 {
                     await context.SayAsync("Your request has been added and is now waiting for approval.");
-                } else
+                }
+                else
                 {
                     await context.SayAsync("I could not add your request");
                 }
 
                 context.ConversationData.Clear();
-                await this.StartAsync(context);
+                await this.EndDialog(context, null);
             }
         }
+
+        public async Task EndDialog(IDialogContext context, IAwaitable<object> result)
+        {
+            context.Done<object>(null);
+        }
     }
-
-    
 }
-
