@@ -105,7 +105,8 @@ namespace TimeOffBot.Dialogs
                     Title = context.ConversationData.GetValue<string>("title"),
                     Comments = context.ConversationData.GetValue<string>("comments"),
                     Days = int.Parse(context.ConversationData.GetValue<string>("days")),
-                    ConversationId = context.ConversationData.GetValue<string>("conversationId")
+                    ConversationId = context.ConversationData.GetValue<string>("conversationId"),
+                    MessageId = activityId
                 };
 
                 var data = JsonConvert.SerializeObject(fields);
