@@ -35,6 +35,7 @@ namespace TimeOffBot.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Message type is missing from body");
             }
             var conversationData = _userService.GetConversation(messagedata.conversationID);
+
             switch (type) {
                 case "newTimeOffRequest":
                     // get approvers channel
@@ -46,7 +47,7 @@ namespace TimeOffBot.Controllers
                     // Update original request in the channel
                     try
                         {
-                            return await sendTimeOffResponse(conversationData);
+                            return await sendTimeOffResponse(messagedata, conversationData);
                         }            
                     catch (Exception ex)
                         {
@@ -54,11 +55,12 @@ namespace TimeOffBot.Controllers
                         }
                 case "toChannel":
                     // Send whatever message was included in the POST message
-                    await sendCard(messagedata.responseMsg, conversationData);
+                    //await sendCard(messagedata.responseMsg, conversationData);
                     var resp = new HttpResponseMessage(HttpStatusCode.OK);
                     resp.Content = new StringContent($"<html><body>Message sent, thanks.</body></html>", System.Text.Encoding.UTF8, @"text/html");
                     return resp;
-                  
+
+
 
             }
             return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Error");
@@ -156,11 +158,11 @@ namespace TimeOffBot.Controllers
             }
             
         }
-        private static async Task<HttpResponseMessage> sendTimeOffResponse(ConversationData conversationData)
+        private static async Task<HttpResponseMessage> sendTimeOffResponse(MessagePostDAO messageData, ConversationData conversationData)
         {
                 if (!string.IsNullOrEmpty(conversationData?.channelId))
                 {
-                    await SendMessage("There is an approval awaiting you", conversationData); //We don't need to wait for this, just want to start the interruption here
+                    await SendMessage(messageData.responseMsg, messageData.originatingMessageId, messageData.originatingRequestReason, conversationData); //We don't need to wait for this, just want to start the interruption here
 
                     var resp = new HttpResponseMessage(HttpStatusCode.OK);
                     resp.Content = new StringContent($"<html><body>Message sent, thanks.</body></html>", System.Text.Encoding.UTF8, @"text/html");
@@ -174,7 +176,7 @@ namespace TimeOffBot.Controllers
                 }
         }
 
-        private static async Task SendMessage(string textmessage, ConversationData data)
+        private static async Task SendMessage(string textmessage, string originatingMessageId, string originatingRequestReeason, ConversationData data)
         {
             var userAccount = new ChannelAccount(data.toId, data.toName);
             var botAccount = new ChannelAccount(data.fromId, data.fromName);
@@ -182,26 +184,29 @@ namespace TimeOffBot.Controllers
 
             // Create a new message.
             IMessageActivity message = Activity.CreateMessageActivity();
+
+            // Set the address-related properties in the message and send the message.
+            message.From = botAccount;
+            message.Recipient = userAccount;
+            message.Locale = "en-us";
+
             if (!string.IsNullOrEmpty(data.conversationId) && !string.IsNullOrEmpty(data.channelId))
             {
                 // If conversation ID and channel ID was stored previously, use it.
                 message.ChannelId = data.channelId;
+                message.Conversation = new ConversationAccount(id: data.conversationId);
+                var newCard = CardHelper.MakeRequestCard(originatingRequestReeason, textmessage);
+                message.Attachments.Add(newCard.ToAttachment());
+                await connector.Conversations.UpdateActivityAsync(data.conversationId, originatingMessageId, (Activity)message);
             }
             else
             {
                 // Conversation ID was not stored previously, so create a conversation. 
                 // Note: If the user has an existing conversation in a channel, this will likely create a new conversation window.
                 data.conversationId = (await connector.Conversations.CreateDirectConversationAsync(botAccount, userAccount)).Id;
+                message.Conversation = new ConversationAccount(id: data.conversationId);
+                await connector.Conversations.SendToConversationAsync((Activity)message);
             }
-
-            // Set the address-related properties in the message and send the message.
-            message.From = botAccount;
-            message.Recipient = userAccount;
-            message.Conversation = new ConversationAccount(id: data.conversationId);
-            message.Text = textmessage;
-            message.Locale = "en-us";
-            await connector.Conversations.SendToConversationAsync((Activity)message);
-
         }
     }
 
@@ -211,6 +216,7 @@ namespace TimeOffBot.Controllers
         public string msgType { get; set; }
         public string teamId { get; set; }
         public string responseMsg { get; set; }
-
+        public string originatingMessageId { get; set; }
+        public string originatingRequestReason { get; set; }
     }
 }
