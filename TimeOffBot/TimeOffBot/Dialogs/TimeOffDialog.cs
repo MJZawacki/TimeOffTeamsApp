@@ -128,7 +128,7 @@ namespace TimeOffBot.Dialogs
                         var newCard = MakeCard(context.ConversationData.GetValue<string>("title"), "Request Pending Approval");
 
                         reply.Attachments.Add(newCard.ToAttachment());
-                        ResourceResponse resourceResponse = await connector.Conversations.UpdateActivityAsync(context.Activity.Conversation.Id, activityId, (Activity)reply);
+                        ResourceResponse resourceResponse = await connector.Conversations.UpdateActivityAsync(context.Activity.Conversation.Id, cachedMessage.Item1, (Activity)reply);
                     }
 
                     // save the result to DocumentDB so that the message can be updated once approved or rejected
@@ -140,7 +140,7 @@ namespace TimeOffBot.Dialogs
                     conversation.serviceUrl = message.ServiceUrl;
                     conversation.channelId = message.ChannelId;
                     conversation.conversationId = message.Conversation.Id;
-                    conversation.originatingMessage = activityId;
+                    conversation.originatingMessage = cachedMessage.Item1;
                     var _userService = new UserManagerService(false);
                     await _userService.SaveConversation(conversation);
                 }
