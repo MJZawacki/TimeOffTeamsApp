@@ -21,7 +21,7 @@ namespace TimeOffRequestService.Utils
             string userAccessToken = authHeader.Substring(authHeader.LastIndexOf(' ')).Trim();
             UserAssertion userAssertion = new UserAssertion(userAccessToken);
 
-            string authority = $"https://login.microsoftonline.com/common";
+            string authority = $"https://login.microsoftonline.com/codemoggy";
 
             AuthenticationContext authContext = new AuthenticationContext(authority);
 

@@ -146,7 +146,14 @@ namespace TimeOffBot.Controllers
 
             message.Attachments.Add(heroCard.ToAttachment());
 
-            await connector.Conversations.SendToConversationAsync((Activity)message);
+            try
+            {
+                await connector.Conversations.SendToConversationAsync((Activity)message);
+            }
+            catch (Exception ex)
+            {
+                var thrownException = ex;
+            }
             
         }
         private static async Task<HttpResponseMessage> sendTimeOffResponse(ConversationData conversationData)

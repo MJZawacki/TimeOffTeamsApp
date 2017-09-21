@@ -7,9 +7,9 @@
   "packageName": "io.ngrok.5d60bbfc.timeoffbot",
   "developer": {
     "name": "Table80",
-    "websiteUrl": "https://5d60bbfc.ngrok.io",
-    "privacyUrl": "https://5d60bbfc.ngrok.io",
-    "termsOfUseUrl": "https://5d60bbfc.ngrok.io"
+    "websiteUrl": "https://75619d85.ngrok.io",
+    "privacyUrl": "https://75619d85.ngrok.io",
+    "termsOfUseUrl": "https://75619d85.ngrok.io"
   },
   "name": {
     "short": "TimeoffBot",
@@ -24,8 +24,26 @@
     "color": "bot_blue.png"
   },
   "accentColor": "#3F487F",
-  "staticTabs": [],
-  "configurableTabs": [],
+  "staticTabs": [
+    {
+      "contentUrl": "https://75619d85.ngrok.io/tab/tab.aspx",
+      "entityId": "statictab",
+      "name": "Bot Info",
+      "scopes": [
+        "team",
+        "personal"
+      ]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://75619d85.ngrok.io/tab/index.html",
+      "canUpdateConfiguration": false,
+      "scopes": [
+        "team"
+      ]
+    }
+  ],
   "bots": [
     {
       "botId": "9225d0a4-2501-4ce4-b5cf-733bc5d66236",
@@ -78,6 +96,6 @@
     "messageTeamMembers"
   ],
   "validDomains": [
-    "5d60bbfc.ngrok.io"
+    "75619d85.ngrok.io"
   ]
 }
