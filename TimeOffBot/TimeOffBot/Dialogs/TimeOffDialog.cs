@@ -25,11 +25,8 @@ namespace TimeOffBot.Dialogs
     {
         public async Task StartAsync(IDialogContext context)
         {
-            await Task.Run(() =>
-            {
-                context.SayAsync("Please give a short description of your time-off request");
-                context.Wait(MessageReceivedAsync);
-            });
+            await context.SayAsync("Please give a short description of your time-off request");
+            context.Wait(MessageReceivedAsync);
         }
 
         public virtual async Task MessageReceivedAsync(IDialogContext context, IAwaitable<IMessageActivity> item)
@@ -54,7 +51,6 @@ namespace TimeOffBot.Dialogs
             context.Wait(AfterDaysSelectedAsync);
         }
 
-
         private async Task AfterDaysSelectedAsync(IDialogContext context, IAwaitable<IMessageActivity> item)
         {
             var message = await item;
@@ -76,7 +72,7 @@ namespace TimeOffBot.Dialogs
                 ClientId = ConfigurationManager.AppSettings["aad:ClientId"],
                 ClientSecret = ConfigurationManager.AppSettings["aad:ClientSecret"],
                 ResourceId = ConfigurationManager.AppSettings["aad:ResourceID"],
-                RedirectUrl = ConfigurationManager.AppSettings["aad:Callback"]
+                RedirectUrl = ConfigurationManager.AppSettings["aad:Callback"],
             };
             await context.Forward(new AuthDialog(new ADALAuthProvider(), options), ResumeAfterAuthenticated, 
                 message, CancellationToken.None);
@@ -95,12 +91,24 @@ namespace TimeOffBot.Dialogs
             {
                 await context.SayAsync("I am now adding your request for Approval");
 
+                IMessageActivity message = context.MakeMessage();
+                var card = MakeCard(context.ConversationData.GetValue<string>("title"), "Posting Request for Approval");
+                message.Attachments.Add(card.ToAttachment());
+
+                ConnectorClient connector = new ConnectorClient(new Uri(context.Activity.ServiceUrl));
+                ResourceResponse resp = await connector.Conversations.ReplyToActivityAsync((Activity)message);
+
+                // Cache the response activity ID and previous task card.
+                string activityId = resp.Id.ToString();
+                context.ConversationData.SetValue("card", new Tuple<string, ThumbnailCard>(activityId, card));
+
                 var fields = new Fields()
                 {
                     Title = context.ConversationData.GetValue<string>("title"),
                     Comments = context.ConversationData.GetValue<string>("comments"),
                     Days = int.Parse(context.ConversationData.GetValue<string>("days")),
-                    ConversationId = context.ConversationData.GetValue<string>("conversationId")
+                    ConversationId = context.ConversationData.GetValue<string>("conversationId"),
+                    MessageId = activityId
                 };
 
                 var data = JsonConvert.SerializeObject(fields);
@@ -114,19 +122,50 @@ namespace TimeOffBot.Dialogs
 
                 if (response.IsSuccessStatusCode == true)
                 {
+
                     var UserService = new UserManagerService(false);
-
-                    // let the user know their request is awaiting approval
-                    var message = context.MakeMessage();
-                    var attachment = GetThumbnailCard(context.ConversationData.GetValue<string>("title"));
-                    message.Attachments.Add(attachment);
-                    await context.PostAsync((message));
-
+                    // let the admin know there is a request to approve
                     TeamsChannelData currentChannelData = context.Activity.GetChannelData<TeamsChannelData>();
                     string tenantId = currentChannelData.Tenant.Id;
+                    var approvalChannelId = UserService.GetApprovalChannel(tenantId)?.channelId;
+                    // Create a new message.
+                    var channelData = new TeamsChannelData { Channel = new ChannelInfo(approvalChannelId) };
+                    IMessageActivity newMessage = Activity.CreateMessageActivity();
+                    var heroCard = MakeCard(context.Activity.From.Name + " sent a time off request", "Please approve this request");
+
+                    newMessage.Type = ActivityTypes.Message;
+                    //newMessage.Text = context.Activity.From.Name + " sent a time off request";
+                    //newMessage.Attachments.Add(heroCard.ToAttachment());
+                    newMessage.Text = "Hello, on a new thread";
+                    ConversationParameters conversationParams = new ConversationParameters(
+                        isGroup: true,
+                        bot: null,
+                        members: null,
+                        topicName: "Test Conversation",
+                        activity: (Activity)newMessage,
+                        channelData: channelData);
+                    var approverNotifyResult = await connector.Conversations.CreateConversationAsync(conversationParams);
+
+                    // let the user know their request is awaiting approval
+
+                    Tuple<string, ThumbnailCard> cachedMessage;
+
+                    if (context.ConversationData.TryGetValue("card", out cachedMessage))
+                    {
+                        IMessageActivity reply = context.MakeMessage();
+
+                        var newCard = MakeCard(context.ConversationData.GetValue<string>("title"), "Request Pending Approval");
+
+                        reply.Attachments.Add(newCard.ToAttachment());
+                        ResourceResponse resourceResponse = await connector.Conversations.UpdateActivityAsync(context.Activity.Conversation.Id, cachedMessage.Item1, (Activity)reply);
+                    }
+
+
+                    
                     var botdata = UserService.GetBotRegistration(tenantId);
 
                     // save the result to DocumentDB so that the message can be updated once approved or rejected
+
                     var conversation = new ConversationData()
                     {
                         toId = message.From.Id,
@@ -137,11 +176,10 @@ namespace TimeOffBot.Dialogs
                         channelId = message.ChannelId,
                         conversationId = message.Conversation.Id,
                         teamId = botdata.teamId,
-                        originatingMessage = message.Id,
+                        originatingMessage = cachedMessage.Item1,
                         tenantId = tenantId
                     };
-
-                    
+ 
                     await UserService.SaveConversation(conversation);
                 }
                 else
@@ -154,17 +192,17 @@ namespace TimeOffBot.Dialogs
             }
         }
 
-        private static Attachment GetThumbnailCard(string text)
+        private static ThumbnailCard MakeCard(string subTitle, string text)
         {
-            var heroCard = new ThumbnailCard
+            var thumbnailCard = new ThumbnailCard
             {
                 Title = "Time-off Request",
-                Subtitle = "Request Awaiting Approval",
+                Subtitle = subTitle,
                 Text = text,
                 Images = new List<CardImage> { new CardImage("http://freedesignfile.com/upload/2014/04/Summer-beach-vacation-background-art-vector-01.jpg") }
             };
 
-            return heroCard.ToAttachment();
+            return thumbnailCard;
         }
 
         public async Task EndDialog(IDialogContext context, IAwaitable<object> result)

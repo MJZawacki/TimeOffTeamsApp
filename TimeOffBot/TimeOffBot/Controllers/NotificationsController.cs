@@ -139,17 +139,7 @@ namespace TimeOffBot.Controllers
             IMessageActivity message = Activity.CreateMessageActivity();
             message.Type = ActivityTypes.Message;
             message.Text = textmessage;
-            if (!string.IsNullOrEmpty(data.conversationId) && !string.IsNullOrEmpty(data.channelId))
-            {
-                // If conversation ID and channel ID was stored previously, use it.
-                message.ChannelId = data.channelId;
-            }
-            else
-            {
-                // Conversation ID was not stored previously, so create a conversation. 
-                // Note: If the user has an existing conversation in a channel, this will likely create a new conversation window.
-                data.conversationId = (await connector.Conversations.CreateDirectConversationAsync(botAccount, userAccount)).Id;
-            }
+            message.ChannelId = approvalChannelId;
 
             var channelData = new TeamsChannelData { Channel = new ChannelInfo(approvalChannelId) };
         
@@ -207,7 +197,14 @@ namespace TimeOffBot.Controllers
 
             message.Attachments.Add(heroCard.ToAttachment());
 
-            await connector.Conversations.SendToConversationAsync((Activity)message);
+            try
+            {
+                await connector.Conversations.SendToConversationAsync((Activity)message);
+            }
+            catch (Exception ex)
+            {
+                var thrownException = ex;
+            }
             
         }
         private static async Task<HttpResponseMessage> sendTimeOffResponse(ConversationData conversationData)

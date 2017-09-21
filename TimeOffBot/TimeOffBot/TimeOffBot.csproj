@@ -153,6 +153,8 @@
     <Content Include="default.htm" />
     <Content Include="Global.asax" />
     <Content Include="Manifest\bot_blue.png" />
+    <Content Include="Tab\index.html" />
+    <Content Include="Tab\tab.aspx" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -174,6 +176,13 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tab\tab.aspx.cs">
+      <DependentUpon>tab.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Tab\tab.aspx.designer.cs">
+      <DependentUpon>tab.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Utils\ConversationStarter.cs" />
   </ItemGroup>
   <ItemGroup>

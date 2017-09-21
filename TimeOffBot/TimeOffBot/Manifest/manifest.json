@@ -6,9 +6,15 @@
   "packageName": "io.ngrok.2074b4a4.timeoffbot",
   "developer": {
     "name": "Table80",
+<<<<<<< HEAD
     "websiteUrl": "https://2074b4a4.ngrok.io",
     "privacyUrl": "https://2074b4a4.ngrok.io",
     "termsOfUseUrl": "https://2074b4a4.ngrok.io"
+=======
+    "websiteUrl": "https://75619d85.ngrok.io",
+    "privacyUrl": "https://75619d85.ngrok.io",
+    "termsOfUseUrl": "https://75619d85.ngrok.io"
+>>>>>>> 47a6ef54a10172e8c2ae7fa92f81ad2344fd1132
   },
   "name": {
     "short": "TimeoffBot",
@@ -23,8 +29,26 @@
     "color": "bot_blue.png"
   },
   "accentColor": "#3F487F",
-  "staticTabs": [],
-  "configurableTabs": [],
+  "staticTabs": [
+    {
+      "contentUrl": "https://75619d85.ngrok.io/tab/tab.aspx",
+      "entityId": "statictab",
+      "name": "Bot Info",
+      "scopes": [
+        "team",
+        "personal"
+      ]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://75619d85.ngrok.io/tab/index.html",
+      "canUpdateConfiguration": false,
+      "scopes": [
+        "team"
+      ]
+    }
+  ],
   "bots": [
     {
       "botId": "48d695b1-348a-4588-875c-29bc5c1526d7",
@@ -77,6 +101,10 @@
     "messageTeamMembers"
   ],
   "validDomains": [
+<<<<<<< HEAD
     "2074b4a4.ngrok.io"
+=======
+    "75619d85.ngrok.io"
+>>>>>>> 47a6ef54a10172e8c2ae7fa92f81ad2344fd1132
   ]
 }
