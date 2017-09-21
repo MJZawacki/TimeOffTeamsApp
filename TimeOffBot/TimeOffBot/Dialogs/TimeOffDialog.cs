@@ -4,6 +4,7 @@ using BotAuth.Models;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Connector.Teams;
+using Microsoft.Bot.Connector.Teams.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -35,7 +36,7 @@ namespace TimeOffBot.Dialogs
 
             // store the conversation.Id for later use when informing the user their request is approved
             context.ConversationData.SetValue<string>("conversationId", message.Conversation.Id);
-
+            
             context.ConversationData.SetValue<string>("title", message.GetTextWithoutMentions());
             await context.SayAsync("Are there any special circumstances the Approver needs to be aware of?");
             context.Wait(AfterCommentsSelectedAsync);
@@ -74,7 +75,8 @@ namespace TimeOffBot.Dialogs
                 ResourceId = ConfigurationManager.AppSettings["aad:ResourceID"],
                 RedirectUrl = ConfigurationManager.AppSettings["aad:Callback"],
             };
-            await context.Forward(new AuthDialog(new ADALAuthProvider(), options), ResumeAfterAuthenticated, message, CancellationToken.None);
+            await context.Forward(new AuthDialog(new ADALAuthProvider(), options), ResumeAfterAuthenticated, 
+                message, CancellationToken.None);
         }
 
         private async Task ResumeAfterAuthenticated(IDialogContext context, IAwaitable<AuthResult> authResult)
@@ -131,6 +133,10 @@ namespace TimeOffBot.Dialogs
                         ResourceResponse resourceResponse = await connector.Conversations.UpdateActivityAsync(context.Activity.Conversation.Id, existingActivityId, (Activity)reply);
                     }
 
+
+                    
+                    var botdata = UserService.GetBotRegistration(tenantId);
+
                     // save the result to DocumentDB so that the message can be updated once approved or rejected
                     var conversation = new DAL.ConversationData();
                     conversation.toId = message.From.Id;
@@ -140,7 +146,7 @@ namespace TimeOffBot.Dialogs
                     conversation.serviceUrl = message.ServiceUrl;
                     conversation.channelId = message.ChannelId;
                     conversation.conversationId = message.Conversation.Id;
-                    conversation.originatingMessage = existingActivityId;
+                    conversation.originatingMessage = cachedMessage.Item1;
                     var _userService = new UserManagerService(false);
                     await _userService.SaveConversation(conversation);
                 }

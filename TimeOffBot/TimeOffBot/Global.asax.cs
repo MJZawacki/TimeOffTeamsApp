@@ -37,9 +37,9 @@ namespace TimeOffBot
             // register the alarm dependencies
             builder.RegisterModule(new AzureModule(Assembly.GetExecutingAssembly()));
 
-            builder
-                .RegisterInstance(new RootDialog())
-                .As<IDialog<object>>();
+            //builder
+            //    .RegisterInstance(new RouteDialog())
+            //    .As<IDialog<object>>();
 
             var store = new DocumentDbBotDataStore(docDbEndPointUri, authorizationKey);
             builder.Register(c => store)

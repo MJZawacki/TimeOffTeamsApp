@@ -6,6 +6,8 @@ using System.Web;
 using System.Threading.Tasks;
 using Microsoft.Bot.Connector.Teams.Models;
 using Microsoft.Bot.Connector;
+using TimeOffBot.DAL;
+using System.Configuration;
 
 namespace TimeOffBot.Dialogs
 {
@@ -16,74 +18,45 @@ namespace TimeOffBot.Dialogs
         {
             var connector = new ConnectorClient(new Uri(context.Activity.ServiceUrl));
 
-            var activity = context.Activity;
-             var response = await connector.GetTeamsConnectorClient().Teams.FetchChannelListWithHttpMessagesAsync
-                (activity.GetChannelData<TeamsChannelData>().Team.Id);
-            var choices = new Dictionary<string, IReadOnlyList<string>>();
-            var descriptions = new List<string>();
-            choices.Add("General", new List<string> { "General" });
-            descriptions.Add("General");
-            foreach (var channel in response.Body.Conversations)
+            // get channel
+    
+
+            var channels = await connector.GetTeamsConnectorClient().Teams.FetchChannelListWithHttpMessagesAsync(context.Activity.GetChannelData<TeamsChannelData>().Team.Id);
+
+
+            TeamsChannelData currentChannelData = context.Activity.GetChannelData<TeamsChannelData>();
+            string tenantId = currentChannelData.Tenant.Id;
+            string channelId = currentChannelData.Channel.Id;
+            string teamId = currentChannelData.Team.Id;
+
+            var approvalChannelData = new ApprovalChannel()
             {
-                if (channel.Name != null)
-                {
-                    choices.Add(channel.Name, new List<string> { channel.Name });
-                    descriptions.Add(channel.Name);
-                } else
-                {
-                    choices.Add("General", new List<string> { channel.Id });
-                    descriptions.Add("General");
-                }
-            }
+                channelId = channelId,
+                teamId = teamId,
+                tenantId = tenantId
+            };
+            approvalChannelData.channelId = channelId;
+            approvalChannelData.teamId = teamId;
+            var debugflag = ConfigurationManager.AppSettings["debugFlag"];
+            var _userService = new UserManagerService(Boolean.Parse(debugflag));
+            await _userService.SetApprovalChannel(approvalChannelData);
 
-            // Create Card with Channel List
-            await Task.Run(() =>
-            {
-              
+            // post to channel and store in docdb
+            var channelData = new TeamsChannelData { Channel = new ChannelInfo(channelId) };
+            IMessageActivity newMessage = Activity.CreateMessageActivity();
+            newMessage.Type = ActivityTypes.Message;
+            newMessage.Text = "All new approvals will be routed to this channel.";
+            ConversationParameters conversationParams = new ConversationParameters(
+                isGroup: true,
+                bot: null,
+                members: null,
+                topicName: "Approval channel set",
+                activity: (Activity)newMessage,
+                channelData: channelData);
 
-                var promptOptions = new PromptOptionsWithSynonyms<string>(
-                    $"Hey, what channel do you want to select?",
-                    "I am sorry but I didn't understand that. I need you to select one of the options below",
-                    choices: choices,
-                    descriptions: descriptions,
-                    speak: $"Hey, what channel do you want to select?",
-                    retrySpeak: "I am sorry but I didn't get that. Please say the name of a channel",
-                    attempts: 2);
-
-                PromptDialog.Choice(
-                    context,
-                    this.AfterChoiceSelected,
-                    promptOptions);
-            });
+            var msgresult = await connector.Conversations.CreateConversationAsync(conversationParams);
         }
 
-        private async Task AfterChoiceSelected(IDialogContext context, IAwaitable<string> result)
-        {
-            var activity = context.Activity as Activity;
-
-            //try
-            //{
-            //    var selection = await result;
-            //    // post to channel and store in docdb
-            //    var channelData = new TeamsChannelData { Channel = new ChannelInfo(yourChannelId) };
-            //    IMessageActivity newMessage = Activity.CreateMessageActivity();
-            //    newMessage.Type = ActivityTypes.Message;
-            //    newMessage.Text = "Hello, on a new thread";
-            //    ConversationParameters conversationParams = new ConversationParameters(
-            //        isGroup: true,
-            //        bot: null,
-            //        members: null,
-            //        topicName: "Test Conversation",
-            //        activity: (Activity)newMessage,
-            //        channelData: channelData);
-            //    var result = await connector.Conversations.CreateConversationAsync(conversationParams);
-
-            //}
-            //catch (TooManyAttemptsException)
-            //{
-            //    await this.StartAsync(context);
-            //}
-        }
-
+      
     }
 }

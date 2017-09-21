@@ -35,7 +35,6 @@ namespace TimeOffBot.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Message type is missing from body");
             }
             var conversationData = _userService.GetConversation(messagedata.conversationID);
-
             switch (type) {
                 case "newTimeOffRequest":
                     // get approvers channel
@@ -59,31 +58,49 @@ namespace TimeOffBot.Controllers
                     var resp = new HttpResponseMessage(HttpStatusCode.OK);
                     resp.Content = new StringContent($"<html><body>Message sent, thanks.</body></html>", System.Text.Encoding.UTF8, @"text/html");
                     return resp;
-
-
+                case "notifyApprover":
+                    // Send whatever message was included in the POST message
+                    await sendApproverRequestMsg(messagedata.responseMsg, conversationData);
+                    resp = new HttpResponseMessage(HttpStatusCode.OK);
+                    resp.Content = new StringContent($"<html><body>Message sent, thanks.</body></html>", System.Text.Encoding.UTF8, @"text/html");
+                    return resp;
 
             }
             return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Error");
 
-
         }
 
-
-        private static async Task sendNewChannelMsg(string textmessage, string channelid, ConversationData data)
+        private static async Task sendApproverRequestMsg(string textmessage, ConversationData data)
         {
+            // lookup approvers channelid
 
+            var approvalChannelId = _userService.GetApprovalChannel(data.tenantId)?.channelId;
             var userAccount = new ChannelAccount(data.toId, data.toName);
             var botAccount = new ChannelAccount(data.fromId, data.fromName);
             var connector = new ConnectorClient(new Uri(data.serviceUrl));
 
             // Create a new message.
-            IMessageActivity message = Activity.CreateMessageActivity();
-            message.Type = ActivityTypes.Message;
-            message.Text = textmessage;
+
+            var heroCard = new ThumbnailCard
+            {
+                Title = "Time-off Request",
+                Subtitle = data.fromName + "Sent a time off request",
+                Text = "Please approve this request",
+                Images = new List<CardImage> { new CardImage("http://freedesignfile.com/upload/2014/04/Summer-beach-vacation-background-art-vector-01.jpg") }
+            };
+
+
+            IMessageActivity newMessage = Activity.CreateMessageActivity();
+            newMessage.Type = ActivityTypes.Message;
+            newMessage.Attachments.Add(heroCard.ToAttachment());
+            //newMessage.From = botAccount;
+            newMessage.Text = textmessage;
+            newMessage.Locale = "en-us";
+
             if (!string.IsNullOrEmpty(data.conversationId) && !string.IsNullOrEmpty(data.channelId))
             {
                 // If conversation ID and channel ID was stored previously, use it.
-                message.ChannelId = data.channelId;
+                newMessage.ChannelId = data.channelId;
             }
             else
             {
@@ -92,7 +109,33 @@ namespace TimeOffBot.Controllers
                 data.conversationId = (await connector.Conversations.CreateDirectConversationAsync(botAccount, userAccount)).Id;
             }
 
-            var channelData = new TeamsChannelData { Channel = new ChannelInfo(channelid) };
+            var channelData = new TeamsChannelData { Channel = new ChannelInfo(approvalChannelId) };
+
+            ConversationParameters conversationParams = new ConversationParameters(
+                isGroup: true,
+                bot: null,
+                members: null,
+                topicName: "Test Conversation",
+                activity: (Activity)newMessage,
+                channelData: channelData);
+            var result = await connector.Conversations.CreateConversationAsync(conversationParams);
+        }
+        private static async Task sendNewChannelMsg(string textmessage, ConversationData data)
+        {
+            // lookup approvers channelid
+
+            var approvalChannelId = _userService.GetApprovalChannel(data.tenantId)?.channelId;
+            var userAccount = new ChannelAccount(data.toId, data.toName);
+            var botAccount = new ChannelAccount(data.fromId, data.fromName);
+            var connector = new ConnectorClient(new Uri(data.serviceUrl));
+
+            // Create a new message.
+            IMessageActivity message = Activity.CreateMessageActivity();
+            message.Type = ActivityTypes.Message;
+            message.Text = textmessage;
+            message.ChannelId = approvalChannelId;
+
+            var channelData = new TeamsChannelData { Channel = new ChannelInfo(approvalChannelId) };
         
 
             ConversationParameters conversationParams = new ConversationParameters(
@@ -214,7 +257,6 @@ namespace TimeOffBot.Controllers
     {
         public string conversationID { get; set; }
         public string msgType { get; set; }
-        public string teamId { get; set; }
         public string responseMsg { get; set; }
         public string originatingMessageId { get; set; }
         public string originatingRequestReason { get; set; }
