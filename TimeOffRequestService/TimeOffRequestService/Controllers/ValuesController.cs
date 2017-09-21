@@ -51,5 +51,6 @@ namespace TimeOffRequestService.Controllers
         public string Title { get; set; }
         public string Comments { get; set; }
         public int Days { get; set; }
+        public string ConversationId { get; set; }
     }
 }

@@ -64,7 +64,7 @@
               "description": "Get a list of requests that has been assigned to you to approve / reject"
             },
             {
-              "title": "set approver channel",
+              "title": "set approval channel",
               "description": "Make this channel the default approval channel for notifications"
             }
           ]
