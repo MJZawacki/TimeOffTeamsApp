@@ -135,8 +135,8 @@ namespace TimeOffBot.Dialogs
 
                     newMessage.Type = ActivityTypes.Message;
                     //newMessage.Text = context.Activity.From.Name + " sent a time off request";
-                    //newMessage.Attachments.Add(heroCard.ToAttachment());
-                    newMessage.Text = "Hello, on a new thread";
+                    newMessage.Attachments.Add(heroCard.ToAttachment());
+                    //newMessage.Text = "Hello, on a new thread";
                     ConversationParameters conversationParams = new ConversationParameters(
                         isGroup: true,
                         bot: null,

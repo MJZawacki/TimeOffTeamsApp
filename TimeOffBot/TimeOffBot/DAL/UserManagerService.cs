@@ -108,7 +108,7 @@ namespace TimeOffBot.DAL
             else
             {
                 IQueryable<ConversationData> query = client.CreateDocumentQuery<ConversationData>(docCollection.DocumentsLink)
-                    .Where(con => (con.conversationId == conversationId) && (con.originatingMessage == messageId))
+                    .Where(con => (con.conversationId == conversationId) && (con.originatingMessage == messageId) && (con.type == "ConversationData"))
                     .OrderByDescending(d => d.creationDate);
                 conversation = query.AsEnumerable().FirstOrDefault(); ;
             }
@@ -124,7 +124,7 @@ namespace TimeOffBot.DAL
             else
             {
                 IQueryable<ConversationData> query = client.CreateDocumentQuery<ConversationData>(docCollection.DocumentsLink)
-                    .Where(con => con.conversationId == conversationId).OrderByDescending(d => d.creationDate);
+                    .Where(con => (con.conversationId == conversationId) && (con.type == "ConversationData")).OrderByDescending(d => d.creationDate);
                 conversation = query.AsEnumerable().FirstOrDefault(); ;
             }
             return conversation;
@@ -141,7 +141,23 @@ namespace TimeOffBot.DAL
             {
                 try
                 {
-                    await client.CreateDocumentAsync(docCollection.DocumentsLink, approval);
+
+                    IQueryable<ApprovalChannel> query = client.CreateDocumentQuery<ApprovalChannel>(docCollection.DocumentsLink)
+                        .Where(con => (con.tenantId == approval.tenantId) && (con.type == "ApprovalChannel"));
+
+                    var existingApproval = query.AsEnumerable();
+                    if (existingApproval.Count() == 0)
+                    {
+                        await client.CreateDocumentAsync(docCollection.DocumentsLink, approval);
+                    } else
+                    {
+                        // replace with new Channel
+                        approval.ID = existingApproval.Last().ID;
+                        var replaceResponse = await client.ReplaceDocumentAsync(UriFactory.CreateDocumentUri(databaseId, 
+                            collectionId, existingApproval.Last().ID), approval);
+
+                 
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -151,18 +167,18 @@ namespace TimeOffBot.DAL
         }
         public ApprovalChannel GetApprovalChannel(string tenantId)
         {
-            ApprovalChannel conversation = null;
+            ApprovalChannel approvalChannel = null;
             if (_debug)
             {
-                conversation = approvalDB[tenantId];
+                approvalChannel = approvalDB[tenantId];
             }
             else
             {
                 IQueryable<ApprovalChannel> query = client.CreateDocumentQuery<ApprovalChannel>(docCollection.DocumentsLink)
-                    .Where(con => con.tenantId == tenantId);
-                conversation = query.AsEnumerable().LastOrDefault();
+                    .Where(con => (con.tenantId == tenantId) && (con.type == "ApprovalChannel"));
+                approvalChannel = query.AsEnumerable().LastOrDefault();
             }
-            return conversation;
+            return approvalChannel;
         }
 
         public async Task RegisterBot(BotRegistrationData botdata)
@@ -194,7 +210,7 @@ namespace TimeOffBot.DAL
             else
             {
                 IQueryable<BotRegistrationData> query = client.CreateDocumentQuery<BotRegistrationData>(docCollection.DocumentsLink)
-                    .Where(con => con.tenantId == tenantID);
+                    .Where(con => (con.tenantId == tenantID) && (con.type == "BotRegistrationData"));
                 botdata = query.AsEnumerable().FirstOrDefault(); ;
             }
             return botdata;
