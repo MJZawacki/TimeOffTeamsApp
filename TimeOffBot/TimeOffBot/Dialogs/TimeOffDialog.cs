@@ -140,7 +140,7 @@ namespace TimeOffBot.Dialogs
                     conversation.serviceUrl = message.ServiceUrl;
                     conversation.channelId = message.ChannelId;
                     conversation.conversationId = message.Conversation.Id;
-                    conversation.originatingMessage = activity.Id;
+                    conversation.originatingMessage = activityId;
                     var _userService = new UserManagerService(false);
                     await _userService.SaveConversation(conversation);
                 }
