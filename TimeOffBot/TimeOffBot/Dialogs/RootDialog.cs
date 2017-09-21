@@ -49,7 +49,7 @@ namespace TimeOffBot.Dialogs
             var _userService = new UserManagerService(Boolean.Parse(debugflag));
             await _userService.SaveConversation(conversation);
 
-            var data = context.UserData;
+            var data = context.UserData; 
             data.SetValue<ConversationData>("Conversation", conversation);
             data.SetValue<string>("test", "test");
 
@@ -206,6 +206,7 @@ namespace TimeOffBot.Dialogs
                     await context.SayAsync("Your request has been added and is now waiting for approval.");
                 } else
                 {
+                    // todo handle 400 bad request and other errors
                     await context.SayAsync("I could not add your request");
                 }
 

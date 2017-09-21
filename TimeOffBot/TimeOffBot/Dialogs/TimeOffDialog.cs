@@ -4,6 +4,7 @@ using BotAuth.Models;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Connector;
 using Microsoft.Bot.Connector.Teams;
+using Microsoft.Bot.Connector.Teams.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,7 @@ namespace TimeOffBot.Dialogs
 
             // store the conversation.Id for later use when informing the user their request is approved
             context.ConversationData.SetValue<string>("conversationId", message.Conversation.Id);
-
+            
             context.ConversationData.SetValue<string>("title", message.GetTextWithoutMentions());
             await context.SayAsync("Are there any special circumstances the Approver needs to be aware of?");
             context.Wait(AfterCommentsSelectedAsync);
@@ -77,7 +78,8 @@ namespace TimeOffBot.Dialogs
                 ResourceId = ConfigurationManager.AppSettings["aad:ResourceID"],
                 RedirectUrl = ConfigurationManager.AppSettings["aad:Callback"]
             };
-            await context.Forward(new AuthDialog(new ADALAuthProvider(), options), ResumeAfterAuthenticated, message, CancellationToken.None);
+            await context.Forward(new AuthDialog(new ADALAuthProvider(), options), ResumeAfterAuthenticated, 
+                message, CancellationToken.None);
         }
 
         private async Task ResumeAfterAuthenticated(IDialogContext context, IAwaitable<AuthResult> authResult)
@@ -112,23 +114,35 @@ namespace TimeOffBot.Dialogs
 
                 if (response.IsSuccessStatusCode == true)
                 {
+                    var UserService = new UserManagerService(false);
+
                     // let the user know their request is awaiting approval
                     var message = context.MakeMessage();
                     var attachment = GetThumbnailCard(context.ConversationData.GetValue<string>("title"));
                     message.Attachments.Add(attachment);
                     await context.PostAsync((message));
 
+                    TeamsChannelData currentChannelData = context.Activity.GetChannelData<TeamsChannelData>();
+                    string tenantId = currentChannelData.Tenant.Id;
+                    var botdata = UserService.GetBotRegistration(tenantId);
+
                     // save the result to DocumentDB so that the message can be updated once approved or rejected
-                    var conversation = new DAL.ConversationData();
-                    conversation.toId = message.From.Id;
-                    conversation.toName = message.From.Name;
-                    conversation.fromId = message.Recipient.Id;
-                    conversation.fromName = message.Recipient.Name;
-                    conversation.serviceUrl = message.ServiceUrl;
-                    conversation.channelId = message.ChannelId;
-                    conversation.conversationId = message.Conversation.Id;
-                    var _userService = new UserManagerService(false);
-                    _userService.SaveConversation(conversation);
+                    var conversation = new ConversationData()
+                    {
+                        toId = message.From.Id,
+                        toName = message.From.Name,
+                        fromId = message.Recipient.Id,
+                        fromName = message.Recipient.Name,
+                        serviceUrl = message.ServiceUrl,
+                        channelId = message.ChannelId,
+                        conversationId = message.Conversation.Id,
+                        teamId = botdata.teamId,
+                        originatingMessage = message.Id,
+                        tenantId = tenantId
+                    };
+
+                    
+                    await UserService.SaveConversation(conversation);
                 }
                 else
                 {

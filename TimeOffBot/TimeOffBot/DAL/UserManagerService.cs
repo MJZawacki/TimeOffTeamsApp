@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -13,7 +14,13 @@ namespace TimeOffBot.DAL
 {
     public interface IUserManagerService
     {
-        ConversationData GetConversation(string id);
+        ConversationData GetLatestConversation(string id);
+        ConversationData GetConversation(string id, string messageId);
+        ApprovalChannel GetApprovalChannel(string teamid);
+        Task SetApprovalChannel(ApprovalChannel channel);
+        BotRegistrationData GetBotRegistration(string tenantid);
+        Task RegisterBot(BotRegistrationData botdata);
+
     }
 
     public class UserManagerService : IUserManagerService
@@ -29,10 +36,12 @@ namespace TimeOffBot.DAL
         private static DocumentClient client;
 
         //The instance of a Database which we will be using for all the Collection operations being demo'd
-        private static Database database;
+        
         private static DocumentCollection docCollection;
 
-        private static Dictionary<String, ConversationData> debugDB = new Dictionary<String, ConversationData>();
+        private static Dictionary<String, ConversationData> conversationDB = new Dictionary<String, ConversationData>();
+        private static Dictionary<String, ApprovalChannel> approvalDB = new Dictionary<String, ApprovalChannel>();
+        private static Dictionary<String, BotRegistrationData> botDB = new Dictionary<String, BotRegistrationData>();
         private static bool _debug;
         public UserManagerService(bool debug)
         {
@@ -44,9 +53,13 @@ namespace TimeOffBot.DAL
             {
                 try
                 {
-                    //Instantiate a new DocumentClient instance
-                    client = new DocumentClient(new Uri(endpointUrl), authorizationKey, connectionPolicy);
-                    docCollection = Initialize().Result;
+                    if ((client == null) || (docCollection == null))
+                    {
+                        //Instantiate a new DocumentClient instance
+                        client = new DocumentClient(new Uri(endpointUrl), authorizationKey, connectionPolicy);
+                        docCollection = Initialize().Result;
+
+                    }
 
                    
                 }
@@ -66,9 +79,11 @@ namespace TimeOffBot.DAL
         }
         public async Task SaveConversation(ConversationData newConversation)
         {
+            newConversation.type = "ConversationData";
+            newConversation.creationDate = DateTime.UtcNow;
             if (_debug)
             {
-                debugDB.Add(newConversation.conversationId, newConversation);
+                conversationDB.Add(newConversation.conversationId, newConversation);
             }
             else
             {
@@ -83,24 +98,109 @@ namespace TimeOffBot.DAL
                 
             }
         }
-        public ConversationData GetConversation(string conversationId)
+        public ConversationData GetConversation(string conversationId, string messageId)
         {
             ConversationData conversation = null;
             if (_debug)
             {
-                conversation = debugDB[conversationId];
+                conversation = conversationDB[conversationId];
             }
             else
             {
                 IQueryable<ConversationData> query = client.CreateDocumentQuery<ConversationData>(docCollection.DocumentsLink)
-                    .Where(con => con.conversationId == conversationId);
+                    .Where(con => (con.conversationId == conversationId) && (con.originatingMessage == messageId))
+                    .OrderByDescending(d => d.creationDate);
+                conversation = query.AsEnumerable().FirstOrDefault(); ;
+            }
+            return conversation;
+        }
+        public ConversationData GetLatestConversation(string conversationId)
+        {
+            ConversationData conversation = null;
+            if (_debug)
+            {
+                conversation = conversationDB[conversationId];
+            }
+            else
+            {
+                IQueryable<ConversationData> query = client.CreateDocumentQuery<ConversationData>(docCollection.DocumentsLink)
+                    .Where(con => con.conversationId == conversationId).OrderByDescending(d => d.creationDate);
                 conversation = query.AsEnumerable().FirstOrDefault(); ;
             }
             return conversation;
         }
 
+        public async Task SetApprovalChannel(ApprovalChannel approval)
+        {
+            approval.type = "ApprovalChannel";
+            if (_debug)
+            {
+                approvalDB.Add(approval.teamId, approval);
+            }
+            else
+            {
+                try
+                {
+                    await client.CreateDocumentAsync(docCollection.DocumentsLink, approval);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                }
+            }
+        }
+        public ApprovalChannel GetApprovalChannel(string tenantId)
+        {
+            ApprovalChannel conversation = null;
+            if (_debug)
+            {
+                conversation = approvalDB[tenantId];
+            }
+            else
+            {
+                IQueryable<ApprovalChannel> query = client.CreateDocumentQuery<ApprovalChannel>(docCollection.DocumentsLink)
+                    .Where(con => con.tenantId == tenantId);
+                conversation = query.AsEnumerable().LastOrDefault();
+            }
+            return conversation;
+        }
 
-        
+        public async Task RegisterBot(BotRegistrationData botdata)
+        {
+            botdata.type = "BotRegistrationData";
+            if (_debug)
+            {
+                botDB.Add(botdata.tenantId, botdata);
+            }
+            else
+            {
+                try
+                {
+                    await client.CreateDocumentAsync(docCollection.DocumentsLink, botdata);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                }
+            }
+        }
+        public BotRegistrationData GetBotRegistration(string tenantID)
+        {
+            BotRegistrationData botdata = null;
+            if (_debug)
+            {
+                botdata = botDB[tenantID];
+            }
+            else
+            {
+                IQueryable<BotRegistrationData> query = client.CreateDocumentQuery<BotRegistrationData>(docCollection.DocumentsLink)
+                    .Where(con => con.tenantId == tenantID);
+                botdata = query.AsEnumerable().FirstOrDefault(); ;
+            }
+            return botdata;
+        }
+
+
         private static async Task<DocumentCollection> Initialize()
         {
             Debug.WriteLine("Initializing Database");
@@ -140,7 +240,7 @@ namespace TimeOffBot.DAL
     {
         [JsonProperty(PropertyName = "id")]
         public string ID { get; set; }
-
+        public string type { get; set; }
         public string fromId { get; set; }
         public string fromName { get; set; }
         public string toId { get; set; }
@@ -148,8 +248,31 @@ namespace TimeOffBot.DAL
         public string serviceUrl { get; set; }
         public string channelId { get; set; }
         public string conversationId { get; set; }
+        public string tenantId { get; set; }
         public string originatingMessage { get; set; }
+        public string teamId { get; set; }
+        public string teamChannelId { get; set; }
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime creationDate { get; set; }
     }
 
+    public class ApprovalChannel
+    {
+        [JsonProperty(PropertyName = "id")]
+        public string ID { get; set; }
+        public string type { get; set; }
+        public string channelId { get; set; }
+        public string teamId { get; set; }
+        public string tenantId { get; set; }
+    }
+
+    public class BotRegistrationData
+    {
+        [JsonProperty(PropertyName = "id")]
+        public string ID { get; set; }
+        public string type { get; set; }
+        public string tenantId { get; set; }
+        public string teamId { get; set; }
+    }
 
 }
