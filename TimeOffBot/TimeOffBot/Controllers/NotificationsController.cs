@@ -34,7 +34,7 @@ namespace TimeOffBot.Controllers
             {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, "Message type is missing from body");
             }
-            var conversationData = _userService.GetConversation(messagedata.conversationID);
+            var conversationData = _userService.GetConversation(messagedata.conversationID, messagedata.originatingMessageId);
             switch (type) {
                 case "newTimeOffRequest":
                     // get approvers channel
