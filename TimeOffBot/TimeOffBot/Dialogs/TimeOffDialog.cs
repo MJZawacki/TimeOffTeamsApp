@@ -17,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using TimeOffBot.DAL;
+using TimeOffBot.Utils;
 
 namespace TimeOffBot.Dialogs
 {
@@ -89,10 +90,8 @@ namespace TimeOffBot.Dialogs
             }
             else
             {
-                await context.SayAsync("I am now adding your request for Approval");
-
                 IMessageActivity message = context.MakeMessage();
-                var card = MakeCard(context.ConversationData.GetValue<string>("title"), "Posting Request for Approval");
+                var card = CardHelper.MakeRequestCard(context.ConversationData.GetValue<string>("title"), "Posting Request for Approval");
                 message.Attachments.Add(card.ToAttachment());
 
                 ConnectorClient connector = new ConnectorClient(new Uri(context.Activity.ServiceUrl));
@@ -100,7 +99,7 @@ namespace TimeOffBot.Dialogs
 
                 // Cache the response activity ID and previous task card.
                 string activityId = resp.Id.ToString();
-                context.ConversationData.SetValue("card", new Tuple<string, ThumbnailCard>(activityId, card));
+                context.ConversationData.SetValue("requestId", activityId);
 
                 var fields = new Fields()
                 {
@@ -120,6 +119,8 @@ namespace TimeOffBot.Dialogs
 
                 HttpResponseMessage response = await client.PostAsync(requestUrl, new StringContent(data, Encoding.UTF8, "application/json"));
 
+                string existingActivityId = string.Empty;
+
                 if (response.IsSuccessStatusCode == true)
                 {
 
@@ -131,7 +132,7 @@ namespace TimeOffBot.Dialogs
                     // Create a new message.
                     var channelData = new TeamsChannelData { Channel = new ChannelInfo(approvalChannelId) };
                     IMessageActivity newMessage = Activity.CreateMessageActivity();
-                    var heroCard = MakeCard(context.Activity.From.Name + " sent a time off request", "Please approve this request");
+                    var heroCard = CardHelper.MakeRequestCard(context.Activity.From.Name + " sent a time off request", "Please approve this request");
 
                     newMessage.Type = ActivityTypes.Message;
                     //newMessage.Text = context.Activity.From.Name + " sent a time off request";
@@ -148,16 +149,17 @@ namespace TimeOffBot.Dialogs
 
                     // let the user know their request is awaiting approval
 
-                    Tuple<string, ThumbnailCard> cachedMessage;
+                   
 
-                    if (context.ConversationData.TryGetValue("card", out cachedMessage))
+                    if (context.ConversationData.TryGetValue("requestId", out existingActivityId))
+
                     {
                         IMessageActivity reply = context.MakeMessage();
 
-                        var newCard = MakeCard(context.ConversationData.GetValue<string>("title"), "Request Pending Approval");
+                        var newCard = CardHelper.MakeRequestCard(context.ConversationData.GetValue<string>("title"), "Request Pending Approval");
 
                         reply.Attachments.Add(newCard.ToAttachment());
-                        ResourceResponse resourceResponse = await connector.Conversations.UpdateActivityAsync(context.Activity.Conversation.Id, cachedMessage.Item1, (Activity)reply);
+                        ResourceResponse resourceResponse = await connector.Conversations.UpdateActivityAsync(context.Activity.Conversation.Id, existingActivityId, (Activity)reply);
                     }
 
 
@@ -165,26 +167,33 @@ namespace TimeOffBot.Dialogs
                     var botdata = UserService.GetBotRegistration(tenantId);
 
                     // save the result to DocumentDB so that the message can be updated once approved or rejected
-
-                    var conversation = new ConversationData()
-                    {
-                        toId = message.From.Id,
-                        toName = message.From.Name,
-                        fromId = message.Recipient.Id,
-                        fromName = message.Recipient.Name,
-                        serviceUrl = message.ServiceUrl,
-                        channelId = message.ChannelId,
-                        conversationId = message.Conversation.Id,
-                        teamId = botdata.teamId,
-                        originatingMessage = cachedMessage.Item1,
-                        tenantId = tenantId
-                    };
- 
-                    await UserService.SaveConversation(conversation);
+                    var conversation = new DAL.ConversationData();
+                    conversation.toId = message.From.Id;
+                    conversation.toName = message.From.Name;
+                    conversation.fromId = message.Recipient.Id;
+                    conversation.fromName = message.Recipient.Name;
+                    conversation.serviceUrl = message.ServiceUrl;
+                    conversation.channelId = message.ChannelId;
+                    conversation.conversationId = message.Conversation.Id;
+                    conversation.originatingMessage = existingActivityId;
+                    var _userService = new UserManagerService(false);
+                    await _userService.SaveConversation(conversation);
                 }
                 else
                 {
-                    await context.SayAsync("I could not add your request");
+                    if (context.ConversationData.TryGetValue("requestId", out existingActivityId))
+                    {
+                        IMessageActivity reply = context.MakeMessage();
+
+                        var newCard = CardHelper.MakeRequestCard(context.ConversationData.GetValue<string>("title"), "Request not added, please see your IT admin");
+
+                        reply.Attachments.Add(newCard.ToAttachment());
+                        ResourceResponse resourceResponse = await connector.Conversations.UpdateActivityAsync(context.Activity.Conversation.Id, existingActivityId, (Activity)reply);
+                    }
+                    else
+                    {
+                        await context.SayAsync("Request not added, please see your IT admin");
+                    }
                 }
 
                 context.ConversationData.Clear();
@@ -192,18 +201,7 @@ namespace TimeOffBot.Dialogs
             }
         }
 
-        private static ThumbnailCard MakeCard(string subTitle, string text)
-        {
-            var thumbnailCard = new ThumbnailCard
-            {
-                Title = "Time-off Request",
-                Subtitle = subTitle,
-                Text = text,
-                Images = new List<CardImage> { new CardImage("http://freedesignfile.com/upload/2014/04/Summer-beach-vacation-background-art-vector-01.jpg") }
-            };
-
-            return thumbnailCard;
-        }
+        
 
         public async Task EndDialog(IDialogContext context, IAwaitable<object> result)
         {

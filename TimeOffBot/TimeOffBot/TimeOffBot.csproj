@@ -183,6 +183,7 @@
     <Compile Include="Tab\tab.aspx.designer.cs">
       <DependentUpon>tab.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Utils\CardHelper.cs" />
     <Compile Include="Utils\ConversationStarter.cs" />
   </ItemGroup>
   <ItemGroup>
