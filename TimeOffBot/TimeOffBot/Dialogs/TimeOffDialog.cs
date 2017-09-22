@@ -162,10 +162,7 @@ namespace TimeOffBot.Dialogs
                         ResourceResponse resourceResponse = await connector.Conversations.UpdateActivityAsync(context.Activity.Conversation.Id, existingActivityId, (Activity)reply);
                     }
 
-
-                    
-                    var botdata = UserService.GetBotRegistration(tenantId);
-
+                 
                     // save the result to DocumentDB so that the message can be updated once approved or rejected
                     var conversation = new DAL.ConversationData();
                     conversation.toId = message.From.Id;
@@ -176,8 +173,8 @@ namespace TimeOffBot.Dialogs
                     conversation.channelId = message.ChannelId;
                     conversation.conversationId = message.Conversation.Id;
                     conversation.originatingMessage = existingActivityId;
-                    var _userService = new UserManagerService(false);
-                    await _userService.SaveConversation(conversation);
+              
+                    await UserService.SaveConversation(conversation);
                 }
                 else
                 {
